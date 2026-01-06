@@ -1,14 +1,17 @@
 package main
 
 import (
+	_ "embed"
 	"errors"
 	"fmt"
 	"log"
-	"os"
 	"time"
 
 	"gopkg.in/yaml.v3"
 )
+
+//go:embed holidays.yaml
+var holidaysYAML []byte
 
 // 祝日の定義を読み込むための構造体
 type HolidayList struct {
@@ -16,19 +19,16 @@ type HolidayList struct {
 }
 
 func main() {
-	// YAMLファイルのパス (必要に応じて引数などで受け取るように変更してください)
-	holidayFile := "holidays.yaml"
-
-	// 祝日を取得
-	holidays, err := loadHolidays(holidayFile)
+	// 埋め込み済みの祝日一覧を取得
+	holidays, err := loadHolidays()
 	if err != nil {
 		log.Fatalf("祝日ファイルの読み込みに失敗しました: %v", err)
 	}
 
 	// 今日の日付
-  today := time.Now()
-  // tz, _ := time.LoadLocation("Asia/Tokyo")
-  // today := time.Date(2025, 4, 1, 0, 0, 0, 0, tz)
+	today := time.Now()
+	// tz, _ := time.LoadLocation("Asia/Tokyo")
+	// today := time.Date(2025, 4, 1, 0, 0, 0, 0, tz)
 
 	// 今月の開始日と終了日を取得
 	start := beginningOfMonth(today)
@@ -65,15 +65,14 @@ func main() {
 	fmt.Printf("%.1f %% 経過しました\n", float64(businessDayIndex)/float64(businessDaysTotal)*100)
 }
 
-// loadHolidays は YAML ファイルから祝日を読み込み、time.Time のスライスにして返す
-func loadHolidays(path string) ([]time.Time, error) {
-	data, err := os.ReadFile(path) // ioutil.ReadFileではなくos.ReadFileを使用
-	if err != nil {
-		return nil, err
+// loadHolidays は埋め込み済みの YAML から祝日を読み込み、time.Time のスライスにして返す
+func loadHolidays() ([]time.Time, error) {
+	if len(holidaysYAML) == 0 {
+		return nil, fmt.Errorf("holidays.yaml が埋め込まれていません")
 	}
 
 	var holidayList HolidayList
-	err = yaml.Unmarshal(data, &holidayList)
+	err := yaml.Unmarshal(holidaysYAML, &holidayList)
 	if err != nil {
 		return nil, err
 	}
